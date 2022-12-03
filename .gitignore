@@ -129,5 +129,6 @@ dmypy.json
 .pyre/
 
 # Secrets
+config.json
 secrets.json
 secrets/*
