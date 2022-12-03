@@ -19,6 +19,7 @@ Slack bot requires an API token. Place the API token in a file called config.jso
 - [] Allow members to auto-do attendance
 - [] Allow members to put in their attendance for the upcoming week via emojis
 - [] Remind build leads to message their channel on a status update
+- [] Have custom send out commands for execs
 
 
 https://api.slack.com/apps/A04E01L56FK

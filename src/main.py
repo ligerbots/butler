@@ -9,9 +9,9 @@ client = WebClient(token=SLACK_BOT_TOKEN)
 
 try:
     response = client.chat_postMessage(
-        channel='U01C6SLHP0C',
-        text="Hello!")
-    assert response["message"]["text"] == "Hello!"
+        channel='U025E727Z7G',
+        text="Hi Davis, react to which meetings you can make this week!")
+    # assert response["message"]["text"] == "Hello!"
 except SlackApiError as e:
     # You will get a SlackApiError if "ok" is False
     assert e.response["ok"] is False
