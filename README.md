@@ -9,7 +9,6 @@ Slack bot requires an API token. Place the API token in a file called config.jso
 ### File Tree
 The listener workflow is based off of the [`bolt-python-starter-template`](https://github.com/slack-samples/bolt-python-starter-template) by [`slack-samples`](https://github.com/slack-samples). You specify listener functions in each respective listener type (`actions`, `commands`, etc) file. You then import them into each base `__init__.py` file under the `register` function. This `register` function is what is called to initiate each listener type for the app.
 
-```
 
 #### Hidden Folders/Files
 - /
@@ -25,4 +24,8 @@ The listener workflow is based off of the [`bolt-python-starter-template`](https
 - [] Have custom send out commands for execs
 
 
-https://api.slack.com/apps/A04E01L56FK
+# Further Resources
+- [Slack API Documentation](https://api.slack.com/)
+- [Slack Bolt Examples](https://slack.dev/bolt-python/tutorial/getting-started)
+- [Slack Bolt Documentation](https://slack.dev/bolt-python/api-docs/slack_bolt/)
+- [Liger App](https://api.slack.com/apps/A04E01L56FK)
