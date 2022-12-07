@@ -4,7 +4,7 @@ from listeners import events
 from listeners import messages
 from listeners import shortcuts
 from listeners import views
-
+from listeners import actions
 
 def register_listeners(app):
     actions.register(app)
