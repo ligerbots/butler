@@ -1,16 +1,18 @@
 # Liger Butler
 Slack butler for LigerBots workspace
 
-## Setup
+# Setup
 
-### Secrets
+## Python Environment
+
+## Secrets
 Slack bot requires an API token. Place the API token in a file called config.json in the config folder. Then run the python script `config-load.py` to load secrets into the environment.
 
-### File Tree
+## File Tree
 The listener workflow is based off of the [`bolt-python-starter-template`](https://github.com/slack-samples/bolt-python-starter-template) by [`slack-samples`](https://github.com/slack-samples). You specify listener functions in each respective listener type (`actions`, `commands`, etc) file. You then import them into each base `__init__.py` file under the `register` function. This `register` function is what is called to initiate each listener type for the app.
 
 
-#### Hidden Folders/Files
+### Hidden Folders/Files
 - /
     - config
         - config.json
