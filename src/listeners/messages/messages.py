@@ -25,6 +25,7 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 			"type": "actions",
 			"elements": [
 				{
+					"action_id": "attendance_poll",
 					"type": "checkboxes",
 					"options": [
 						{
@@ -36,7 +37,7 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 								"type": "mrkdwn",
 								"text": "6:30 PM ➡ 9:30 PM"
 							},
-							"value": "value-0"
+							"value": "Monday"
 						},
 						{
 							"text": {
@@ -47,7 +48,7 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 								"type": "mrkdwn",
 								"text": "6:30 PM ➡ 9:30 PM"
 							},
-							"value": "value-1"
+							"value": "Tuesday"
 						},
 						{
 							"text": {
@@ -58,7 +59,7 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 								"type": "mrkdwn",
 								"text": "6:30 PM ➡ 9:30 PM"
 							},
-							"value": "value-2"
+							"value": "Wednesday"
 						},
 						{
 							"text": {
@@ -69,7 +70,7 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 								"type": "mrkdwn",
 								"text": "6:30 PM ➡ 9:30 PM"
 							},
-							"value": "value-2"
+							"value": "Thursday"
 						},
 						{
 							"text": {
@@ -80,7 +81,7 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 								"type": "mrkdwn",
 								"text": "9 AM ➡ 1:30 PM"
 							},
-							"value": "value-2"
+							"value": "Friday"
 						},
 						{
 							"text": {
@@ -91,10 +92,40 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 								"type": "mrkdwn",
 								"text": "9 AM ➡ 1:30 PM"
 							},
-							"value": "value-2"
+							"value": "Saturday"
 						}
 					],
-					"action_id": "attendance_poll"
+                    "initial_options": [
+						{
+							"text": {
+								"type": "mrkdwn",
+								"text": "12/6:\tSaturday"
+							},
+							"description": {
+								"type": "mrkdwn",
+								"text": "9 AM ➡ 1:30 PM"
+							},
+							"value": "Saturday"
+						}
+                    ],
+                    "confirm": {
+                        "title": {
+                            "type": "plain_text",
+                            "text": "Are you sure?"
+                        },
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "You are about to submit your attendance for the selected days."
+                        },
+                        "confirm": {
+                            "type": "plain_text",
+                            "text": "Submit"
+                        },
+                        "deny": {
+                            "type": "plain_text",
+                            "text": "Cancel"
+                        }
+                    }
 				}
 			]
 		}
