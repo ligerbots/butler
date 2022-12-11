@@ -15,8 +15,7 @@ class MeetingTime():
         TIME_SLOT_FORMAT = "%I:%M %p"
         startTime = self.start.strftime(TIME_SLOT_FORMAT)
         endTime = self.end.strftime(TIME_SLOT_FORMAT)
-        # return f"{startTime} ➡  {endTime}"
-        return f"{startTime} -> {endTime}"
+        return f"{startTime} ➡ {endTime}"
 
     # Returns the date in the format "12/1\tMonday"
     def date(self) -> str:

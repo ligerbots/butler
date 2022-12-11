@@ -133,3 +133,5 @@ config.json
 secrets.json
 secrets/*
 secrets-load.sh
+config/secrets/*
+!.gitkeep
