@@ -1,10 +1,10 @@
 # from listeners import actions
-from listeners import commands
-from listeners import events
-from listeners import messages
-from listeners import shortcuts
-from listeners import views
-from listeners import actions
+from .  import actions
+from .  import commands
+from .  import events
+from .  import messages
+from .  import shortcuts
+from .  import views
 
 def register_listeners(app):
     actions.register(app)

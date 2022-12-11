@@ -5,6 +5,10 @@ from slack_sdk import WebClient
 from typing import Union
 import re
 
+from ...dataTypes.classes import MeetingTime, Attendance, AttendancePoll
+
+from datetime import datetime
+
 def sayBots(context: BoltContext, client: WebClient, say: Say, logger: Logger):
     try:
         print(context)
@@ -12,7 +16,7 @@ def sayBots(context: BoltContext, client: WebClient, say: Say, logger: Logger):
     except Exception as e:
         logger.error(e)
 
-def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Logger):
+def attendancePollTest(context: BoltContext, client: WebClient, say: Say, logger: Logger):
     try:
         blocks = [					{
 			"type": "section",
@@ -107,31 +111,29 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
 							},
 							"value": "Saturday"
 						}
-                    ],
-                    "confirm": {
-                        "title": {
-                            "type": "plain_text",
-                            "text": "Are you sure?"
-                        },
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "You are about to submit your attendance for the selected days."
-                        },
-                        "confirm": {
-                            "type": "plain_text",
-                            "text": "Submit"
-                        },
-                        "deny": {
-                            "type": "plain_text",
-                            "text": "Cancel"
-                        }
-                    }
+                    ]
 				}
 			]
 		}
 	]
+        print(blocks)
         say(blocks=blocks, text="Pick a date to remind you")
     except Exception as e:
         print(e)
-    
 
+def attendencePoll(context: BoltContext, client: WebClient, say: Say, logger: Logger, attendancePoll: AttendancePoll):
+    try:
+        blocks = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Hi!\n*Select the meetings you will attend:*"
+                    }
+                },
+                attendancePoll.generate_slack_poll()
+            ]
+        print(blocks)
+        say(blocks=blocks, text="Pick a date to remind you")
+    except Exception as e:
+        print(e)
