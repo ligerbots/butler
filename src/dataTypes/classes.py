@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from datetime import datetime
 from typing import List, Dict
 import json
+
 
 class UserCreate():
     email: str
@@ -67,6 +70,9 @@ class Attendance():
 
     def __str__(self) -> str:
         return f"{self.meetingTime.title()}: {self.attendance}"
+    
+    def __repr__(self) -> str:
+        return str(self)
 
 class AttendancePoll():
     attendances: List[Attendance]
@@ -74,6 +80,29 @@ class AttendancePoll():
     def __init__(self, attendances: List[Attendance], user: User):
         self.attendances = attendances
         self.user = user
+
+    @staticmethod
+    def reverse_slack_poll(body: Dict) -> AttendancePoll:
+        attendances = []
+        for meetingTime in body:
+            title = meetingTime["text"]["text"]
+            raw_date = title.split("\t")[0]
+
+            raw_times = meetingTime["description"]["text"].split("➡")
+            start_time = raw_times[0].strip()
+            end_time = raw_times[1].strip()
+
+            start_time = datetime.strptime(f"{datetime.now().year}/{raw_date} {start_time}", "%Y/%m/%d %I:%M %p")
+            end_time = datetime.strptime(f"{datetime.now().year}/{raw_date} {end_time}", "%Y/%m/%d %I:%M %p")
+            print(start_time)
+            # meetingTime = meetingTime["value"]
+            # meetingTime = datetime.strptime(meetingTime, "%m/%d")
+            # meetingTime = MeetingTime(meetingTime, meetingTime)
+            # attendances.append(Attendance(meetingTime, True))
+            attendance = Attendance(MeetingTime(start_time, end_time), True) # If entry is in state, then it is True by Slack Default
+            attendances.append(attendance)
+        print(attendances)
+        return attendances
 
     def generate_slack_poll(self) -> str:
         def generate_options(self) -> Dict[str, List]:
