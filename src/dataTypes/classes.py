@@ -2,6 +2,30 @@ from datetime import datetime
 from typing import List, Dict
 import json
 
+class UserCreate():
+    email: str
+    def __init__(self, email):
+        self.email = email
+
+class User(UserCreate):
+    first: str
+    last: str
+    def __init__(self, email, first, last):
+        self.email = email
+        self.first = first
+        self.last = last
+    
+    def __str__(self):
+        return f"User {self.row}: {self.first} {self.last}"
+
+class UserReturn(User):
+    row: int
+    def __init__(self, email, row, first, last):
+        self.email = email
+        self.row = row
+        self.first = first
+        self.last = last
+
 class MeetingTime():
     start: datetime
     end: datetime
@@ -18,7 +42,7 @@ class MeetingTime():
         return f"{startTime} ➡ {endTime}"
 
     # Returns the date in the format "12/1\tMonday"
-    def date(self) -> str:
+    def title(self) -> str:
         startDate = self.start.strftime("%m/%d")
         weekDay = self.start.strftime("%A")
         return f"{startDate}\t{weekDay}"
@@ -26,6 +50,9 @@ class MeetingTime():
     # Returns the day of the week ("Monday", "Tuesday", etc.)
     def weekDay(self) -> str:
         return self.start.strftime("%A")
+    
+    def date(self) -> str:
+        return self.start.strftime("%m/%d")
 
 class Attendance():
     meetingTime: MeetingTime
@@ -38,11 +65,15 @@ class Attendance():
     def select(self, attendance: bool):
         self.attendance = attendance
 
+    def __str__(self) -> str:
+        return f"{self.meetingTime.title()}: {self.attendance}"
+
 class AttendancePoll():
     attendances: List[Attendance]
-
-    def __init__(self, attendances: List[Attendance]):
+    user: User
+    def __init__(self, attendances: List[Attendance], user: User):
         self.attendances = attendances
+        self.user = user
 
     def generate_slack_poll(self) -> str:
         def generate_options(self) -> Dict[str, List]:
@@ -51,13 +82,13 @@ class AttendancePoll():
                 options.append({
                     "text": {
                         "type": "mrkdwn",
-                        "text": attendance.meetingTime.date()
+                        "text": attendance.meetingTime.title()
                     },
                     "description": {
                         "type": "mrkdwn",
                         "text": attendance.meetingTime.timeSlot()
                     },
-                    "value": attendance.meetingTime.weekDay()
+                    "value": attendance.meetingTime.date()
                 })
             return options
 
@@ -69,13 +100,13 @@ class AttendancePoll():
                     initial_options.append({
                         "text": {
                             "type": "mrkdwn",
-                            "text": attendance.meetingTime.date()
+                            "text": attendance.meetingTime.title()
                         },
                         "description": {
                             "type": "mrkdwn",
                             "text": attendance.meetingTime.timeSlot()
                         },
-                        "value": attendance.meetingTime.weekDay()
+                        "value": attendance.meetingTime.date()
                     })
             return initial_options
         
@@ -128,8 +159,5 @@ attendance2 = Attendance(meetingTime=meetingTime2, attendance=False)
 attendance3 = Attendance(meetingTime=meetingTime3, attendance=True)
 
 attendances = [attendance1, attendance2, attendance3]
-attendancePoll = AttendancePoll(attendances=attendances)
+# attendancePoll = AttendancePoll(attendances=attendances)
 # print(attendancePoll.generate_slack_poll())
-
-    
-    

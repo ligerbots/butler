@@ -3,9 +3,10 @@ from logging import Logger
 from slack_bolt import BoltContext, Say
 from slack_sdk import WebClient
 from typing import Union
+from ...google.sheets import AttendanceSheetController
 import re
 
-from ...dataTypes.classes import MeetingTime, Attendance, AttendancePoll
+from ...dataTypes.classes import MeetingTime, Attendance, AttendancePoll, User
 
 from datetime import datetime
 
@@ -122,17 +123,22 @@ def attendancePollTest(context: BoltContext, client: WebClient, say: Say, logger
         print(e)
 
 def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Logger):
-    meetingTime1 = MeetingTime(startTime=datetime(2022, 12, 1, 18, 30, 0), endTime=datetime(2022, 12, 1, 21, 0, 0))
-    meetingTime2 = MeetingTime(startTime=datetime(2022, 12, 2, 18, 30, 0), endTime=datetime(2022, 12, 2, 21, 0, 0))
-    meetingTime3 = MeetingTime(startTime=datetime(2022, 12, 3, 18, 30, 0), endTime=datetime(2022, 12, 3, 21, 0, 0))
-    meetingTime4 = MeetingTime(startTime=datetime(2022, 12, 4, 18, 30, 0), endTime=datetime(2022, 12, 4, 21, 0, 0))
+    MEETING_WINDOW = 4
+    slack_user = client.users_profile_get(user=context["user_id"])
+    name = slack_user["profile"]["real_name"]
+    email = slack_user["profile"]["email"]
+    user = User(email, name.split(" ")[0], name.split(" ")[1])
+    spreadsheetController = AttendanceSheetController()
+    spreadsheet_user = spreadsheetController.get_user(user)
+    if spreadsheet_user is None:
+        say("Added you to the attendance sheet")
+        spreadsheet_user = spreadsheetController.add_user(user)
 
-    attendance1 = Attendance(meetingTime=meetingTime1, attendance=True)
-    attendance2 = Attendance(meetingTime=meetingTime2, attendance=False)
-    attendance3 = Attendance(meetingTime=meetingTime3, attendance=True)
+    attendancePoll = spreadsheetController.get_attendance_poll(spreadsheet_user, MEETING_WINDOW, datetime(2022, 12, 3)) 
+    if attendancePoll is None:
+        say("No more meetings to attend")
+        return
 
-    attendances = [attendance1, attendance2, attendance3]
-    attendancePoll = AttendancePoll(attendances=attendances)
     try:
         blocks = [
                 {
