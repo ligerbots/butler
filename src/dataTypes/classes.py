@@ -11,6 +11,12 @@ class UserCreate():
 
     def __repr__ (self):
         return f"{self.email}"
+    
+    def __eq__(self, other):
+        return self.email == other.email
+    
+    def __hash__(self):
+        return hash(self.email)
 
 class User(UserCreate):
     first: str
@@ -209,13 +215,18 @@ class ForecastPayload:
     poll: AttendancePoll
     user: User
 
-class ForecastJob(AttendancePoll):
+@dataclass
+class ForecastJob(ForecastPayload):
     user: UserReturn
     starting_column: int
-    def __init__(self, user: UserReturn, starting_column: int, attendances: List[Attendance]):
-        super().__init__(attendances, user)
-        self.starting_column = starting_column
-        self.user = user
+
+# class ForecastJob():
+
+#     starting_column: int
+#     def __init__(self, user: UserReturn, starting_column: int, attendances: List[Attendance]):
+#         super().__init__(attendances, user)
+#         self.starting_column = starting_column
+#         self.user = user
     
 # if __name__ == "__main__":
 # meetingTime1 = MeetingTime(startTime=datetime(2022, 12, 1, 18, 30, 0), endTime=datetime(2022, 12, 1, 21, 0, 0))

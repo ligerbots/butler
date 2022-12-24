@@ -1,7 +1,7 @@
 import pygsheets
 from pygsheets import DataRange, Cell
 
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 
 from ..dataTypes.classes import MeetingTime, Attendance, AttendancePoll, UserCreate, UserReturn, User, ForecastJob
@@ -127,15 +127,40 @@ class AttendanceSheetController():
         self.forecast_sheet.update_row(user.row, [attendance.attendance for attendance in poll.attendances], starting_column)
         return True
     
-    def batch_update_forecast(self, jobs: List[ForecastJob]):
+    def batch_update_forecast(self, jobs: Dict[User, ForecastJob]):
         # self.forecast_sheet.unlink()
-        for job in jobs:
+        for user, job in jobs.items():
             column = job.starting_column
             print("Starting Column: ", column)
-            for attendance in job.attendances.attendances:
-                print("Updating: ", (job.user.row, column), attendance.attendance)
+            for attendance in job.poll.attendances:
+                print("Updating: ", (user.row, column), attendance.attendance)
 
-                self.forecast_sheet.update_value((job.user.row, column), attendance.attendance)
+                self.forecast_sheet.update_value((user.row, column), attendance.attendance)
                 column += 1
+            # update the cells with the values in the poll
+            custom_request = {
+                
+                "requests": [
+                    {
+                        "updateCells": 
+                            {"rows": {
+                                "values": [
+                                    "\{'userEnteredValue': \{'stringValue': {status}\}\}".format(status = status) for status in job.poll.attendances
+                                ]
+                            },
+                            "fields": "userEnteredValue"
+                            },
+                            "start": {
+                                "sheetId": self.forecast_sheet.id,
+                                "rowIndex": user.row,
+                                "columnIndex": job.starting_column
+                            }
+                    }
+                ]
+            }
+
+
+            self.sh.custom_request(custom_request)
+        
         # self.forecast_sheet.link()
         return True
