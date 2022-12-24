@@ -135,32 +135,33 @@ class AttendanceSheetController():
             for attendance in job.poll.attendances:
                 print("Updating: ", (user.row, column), attendance.attendance)
 
-                self.forecast_sheet.update_value((user.row, column), attendance.attendance)
-                column += 1
+                # self.forecast_sheet.update_value((user.row, column), attendance.attendance)
+                # column += 1
             # update the cells with the values in the poll
+            def value_format(value: bool) -> dict:
+                return [{"userEnteredValue": {"boolValue": value }}]
+
+            values = [value_format(attendance.attendance) for attendance in job.poll.attendances]
+            print(values)
             custom_request = {
-                
-                "requests": [
-                    {
                         "updateCells": 
-                            {"rows": {
-                                "values": [
-                                    "\{'userEnteredValue': \{'stringValue': {status}\}\}".format(status = status) for status in job.poll.attendances
-                                ]
+                            {
+                                "rows": {
+                                    "values": values
+                                },
+                                "range": {
+                                    "sheetId": self.forecast_sheet.id,
+                                    "startRowIndex": user.row - 1,
+                                    "endRowIndex": user.row,
+                                    "startColumnIndex": column - 1,
+                                    "endColumnIndex": column - 1 + len(job.poll.attendances),
+                                },
+                                "fields": "userEnteredValue"
                             },
-                            "fields": "userEnteredValue"
-                            },
-                            "start": {
-                                "sheetId": self.forecast_sheet.id,
-                                "rowIndex": user.row,
-                                "columnIndex": job.starting_column
-                            }
                     }
-                ]
-            }
+            
 
-
-            self.sh.custom_request(custom_request)
+            self.sh.custom_request(custom_request, fields="replies")
         
         # self.forecast_sheet.link()
         return True
