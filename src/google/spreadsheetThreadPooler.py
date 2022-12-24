@@ -1,6 +1,6 @@
 from multiprocessing import Queue, Process
 
-from ..dataTypes.classes import MeetingTime, Attendance, AttendancePoll, User, AttendanceJob
+from ..dataTypes.classes import MeetingTime, Attendance, AttendancePoll, User, ForecastJob
 from datetime import datetime
 
 from .sheet_controller import AttendanceSheetController
@@ -19,16 +19,16 @@ class SpreadsheetThreadPooler(Process):
         print("SpreadsheetThreadPooler started")
         while True:
             batch = []
-            for attendancePoll in iter(self.queue.get, None):
-                user = self.attendancePollController.add_user(attendancePoll.user)
-                print(user)
-                starting_column = self.attendancePollController.get_attendance_entry(user, attendancePoll.attendances[0].meetingTime.start).col
-                attendanceJob = AttendanceJob(user, starting_column, attendancePoll)
+            for payload in iter(self.queue.get, None):
+                attendancePoll = payload.poll
+                user = self.attendancePollController.add_user(payload.user)
+                print(f"User: {user}")
+                starting_column = self.attendancePollController.get_forecast_entry(user, attendancePoll.attendances[0].meetingTime.start).col
+                attendanceJob = ForecastJob(user, starting_column, attendancePoll)
                 batch.append(attendanceJob)
-                print(batch)
-                print(self.queue.qsize())
+                print("Batch: ", batch, self.queue.qsize())
                 if self.queue.qsize() == 0:
                     break
             print("Running batch update")
-            self.attendancePollController.batch_update_attendance(batch)
+            self.attendancePollController.batch_update_forecast(batch)
             batch.clear()

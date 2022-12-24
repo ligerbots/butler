@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import List, Dict
-import json
-
+from dataclasses import dataclass
 
 class UserCreate():
     email: str
@@ -204,8 +203,13 @@ class AttendancePoll():
         poll["elements"][0]["initial_options"] = generate_initial_options(self)
 
         return poll
-        
-class AttendanceJob(AttendancePoll):
+
+@dataclass     
+class ForecastPayload:   
+    poll: AttendancePoll
+    user: User
+
+class ForecastJob(AttendancePoll):
     user: UserReturn
     starting_column: int
     def __init__(self, user: UserReturn, starting_column: int, attendances: List[Attendance]):
