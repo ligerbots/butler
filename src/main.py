@@ -1,9 +1,8 @@
-from multiprocessing import Process, Pipe, Queue
-from .google.sheet_controller import AttendanceSheetController
-from .google.spreadsheetThreadPooler import SpreadsheetThreadPooler
+from multiprocessing import Queue
+from .google.spreadsheetThreadPooler import SpreadsheetThreadPool
 
-# if __name__ == "__main__":
-queue = Queue()
-# parent_conn, child_conn = Pipe()
-spreadsheetThreadPooler = SpreadsheetThreadPooler(queue)
-spreadsheetThreadPooler.start()
+# Start SpreadsheetThreadPooler as side process
+
+spreadsheetUpdateQueue = Queue() # Queue used to pass Spreadsheet Update Jobs based off of AttendancePolls
+spreadsheetThreadPool = SpreadsheetThreadPool(spreadsheetUpdateQueue)
+spreadsheetThreadPool.start()

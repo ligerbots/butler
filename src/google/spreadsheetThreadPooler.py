@@ -1,63 +1,58 @@
 from multiprocessing import Queue, Process
-
-from ..dataTypes.classes import MeetingTime, Attendance, AttendancePoll, User, ForecastJob
-from datetime import datetime
-
+from ..dataTypes.classes import User, ForecastJob
 from .sheet_controller import AttendanceSheetController
-
-import sys
 from typing import Dict
 
 
-class SpreadsheetThreadPooler(Process):
+class SpreadsheetThreadPool(Process):
     def __init__(self, queue: Queue, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.queue = queue
         self.attendancePollController = AttendanceSheetController()
-        print(args)
 
     def run(self):
-        print("SpreadsheetThreadPooler started")
+        print("Spreadsheet Thread Pooler Started")
         while True:
-            batch: Dict[User, ForecastJob] = {}
+            updateBatch: Dict[User, ForecastJob] = {}
 
+            # Go through all jobs in queue
             for payload in iter(self.queue.get, None):
-                print("CYCLE START")
+                # Note that self.queue.get() consumes queue items
+
+                # Rename payload components
                 user = payload.user
                 attendancePoll = payload.poll
-                    
-                # Check if user is not in batch
-                if user not in batch:
-                    # Check if user is in sheet
-                    user = self.attendancePollController.add_user(payload.user)
-                    print(f"User: {user}")
-                    print("Getting forecast entry")
-                    starting_column = self.attendancePollController.get_forecast_entry(user, attendancePoll.attendances[0].meetingTime.start).col
-                    print("Finished getting forecast entry")
 
-                    attendanceJob = ForecastJob(user=user, poll=attendancePoll, starting_column=starting_column)
+                # Check if user is not in batch
+                if user not in updateBatch:
+
+                    # Check if user is in sheet
+                    user = self.attendancePollController.lookup_or_add_user(payload.user)
+                    # If the user is not in the sheet, add_user will auto add them.
+
+                    # Grab the starting column based off of the first date in AttendancePoll
+                    # Note: AttendancePoll is sorted by date (earliest to latest)
+                    starting_column = self.attendancePollController.get_forecast_entry(
+                        user, attendancePoll.attendances[0].meetingTime.start
+                    ).col
+
+                    # Construct ForecastJob to be used by batch update
+                    attendanceJob = ForecastJob(
+                        user=user, poll=attendancePoll, starting_column=starting_column
+                    )
 
                     # Add new user and their attendance job to batch
-                    batch[user] = attendanceJob
+                    updateBatch[user] = attendanceJob
 
-                    print("Batch: ", batch, self.queue.qsize())
+                # If user is in batch, overwrite their poll
+                updateBatch[user].poll = attendancePoll
 
-                    print("CYCLE END")
-                
-                # User is in batch
-                # Overwrite their poll
-                batch[user].poll = attendancePoll
-                print("User already in batch, overwriting poll")
-                print("CYCLE END")
-
+                # Exit out if queue is empty
                 if self.queue.empty():
-                    print("Queue is empty, breaking")
                     break
-                
-            print("Running batch update")
-            self.attendancePollController.batch_update_forecast(batch)
-            print("Batch update complete")
-            print("Batch: ", batch, self.queue.qsize())
-            print("Clearing batch")
-            batch = [] # Clear batch
-            print("Batch cleared")
+
+            # When queue is empty, submit all changes to sheets
+            self.attendancePollController.batch_update_forecast(updateBatch)
+
+            # Clear batch
+            updateBatch = []

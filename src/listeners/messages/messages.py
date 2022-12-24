@@ -7,6 +7,8 @@ from ...google.sheet_controller import AttendanceSheetController
 
 from ...dataTypes.classes import MeetingTime, Attendance, AttendancePoll, User
 
+from pprint import pprint
+
 from datetime import datetime
 
 def sayBots(context: BoltContext, client: WebClient, say: Say, logger: Logger):
@@ -116,29 +118,34 @@ def attendancePollTest(context: BoltContext, client: WebClient, say: Say, logger
 			]
 		}
 	]
-        print(blocks)
         say(blocks=blocks, text="Pick a date to remind you")
     except Exception as e:
         print(e)
 
 def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Logger):
-    MEETING_WINDOW = 4
+    MEETING_WINDOW = 4 # Note: Number is inclusive (i.e. 4 means 5 meetings)
+    
     slack_user = client.users_profile_get(user=context["user_id"])
-    name = slack_user["profile"]["real_name"]
+    first = slack_user["profile"]["first_name"]
+    last = slack_user["profile"]["last_name"]
+
     email = slack_user["profile"]["email"]
-    user = User(email, name.split(" ")[0], name.split(" ")[1])
+    user = User(email, first, last)
+
     spreadsheetController = AttendanceSheetController()
     spreadsheet_user = spreadsheetController.get_user(user)
     if spreadsheet_user is None:
         say("Added you to the attendance sheet")
-        spreadsheet_user = spreadsheetController.add_user(user)
+        spreadsheet_user = spreadsheetController.lookup_or_add_user(user)
 
-    attendancePoll = spreadsheetController.get_attendance_poll(spreadsheet_user, MEETING_WINDOW, datetime(2022, 12, 3)) 
+    attendancePoll = spreadsheetController.get_attendance_poll(spreadsheet_user, MEETING_WINDOW, datetime.now())
+    print("Attendance Poll:", attendancePoll)
     if attendancePoll is None:
-        say("No more meetings to attend")
+        say("No more meetings to attend! :tada:")
         return
-
+    
     try:
+        json_poll = attendancePoll.generate_slack_poll()
         blocks = [
                 {
                     "type": "section",
@@ -147,9 +154,10 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
                         "text": "Hi!\n*Select the meetings you will attend:*"
                     }
                 },
-                attendancePoll.generate_slack_poll()
+                json_poll
             ]
-        print(blocks)
+        print("--------------------")
+        pprint(blocks)
         say(blocks=blocks, text="Pick a date to remind you")
     except Exception as e:
         print(e)
