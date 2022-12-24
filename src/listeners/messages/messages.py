@@ -3,8 +3,7 @@ from logging import Logger
 from slack_bolt import BoltContext, Say
 from slack_sdk import WebClient
 from typing import Union
-from ...google.sheets import AttendanceSheetController
-import re
+from ...google.sheet_controller import AttendanceSheetController
 
 from ...dataTypes.classes import MeetingTime, Attendance, AttendancePoll, User
 

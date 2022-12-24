@@ -4,10 +4,12 @@ from pygsheets import DataRange, Cell
 from typing import Optional, List
 from datetime import datetime
 
-from ..dataTypes.classes import MeetingTime, Attendance, AttendancePoll, UserCreate, UserReturn, User
+from ..dataTypes.classes import MeetingTime, Attendance, AttendancePoll, UserCreate, UserReturn, User, AttendanceJob
 
 gc = pygsheets.authorize(service_file='config/secrets/g-service.json')
  
+
+MEETINGS_TO_FORECAST_SHIFT = (-1, 1)
 
 class AttendanceSheetController():
     def __init__(self):
@@ -48,8 +50,17 @@ class AttendanceSheetController():
             return UserReturn(user.email, row, first, last)
         # return self.users_sheet.find(user.email, in_column=1, matchEntireCell=True)
     
-    def get_attendance(self, user: UserReturn, date: datetime): 
-        column = self.attendance_sheet.find(date, rows=1)
+    def translate_meeting_date_column_to_other_sheets(self, date: datetime) -> Optional[int]:
+        cell = self.meetings_sheet.find(date.strftime("%m/%-d/%Y %H:%M"))
+        if len(cell) == 0:
+            return None
+        return cell[0].col 
+    
+    def get_attendance_entry(self, user: UserReturn, date: datetime) -> Optional[Cell]: 
+        column = self.translate_meeting_date_column_to_other_sheets(date)
+        if column == None:
+            return None
+        return self.attendance_sheet.cell((user.row, column))
 
     def get_user_attendances(self, user: UserReturn, date: datetime = datetime.now()) -> List:
 
@@ -60,18 +71,24 @@ class AttendanceSheetController():
     def get_user_forecasts(self, user: UserReturn, date: datetime = datetime.now()) -> List:
         return self.forecast_sheet.get_row(user.row, include_tailing_empty=False)[2:]
     
-    def meeting_cell_time_format(self, cell: Cell) -> datetime:
+    @staticmethod
+    def meeting_cell_time_format(cell: Cell) -> datetime:
         time_format = "%m/%d/%Y %H:%M"
         return datetime.strptime(cell.value, time_format)
+    
+    @staticmethod
+    def reverse_meeting_cell_time_format(date: datetime) -> str:
+        time_format = "%m/%-d/%Y %H:%M"
+        return date.strftime(time_format)
     
     def get_attendance_poll(self, user: UserReturn, window: int, date: datetime = datetime.now()) -> Optional[AttendancePoll]:
         user = self.get_user(user)
         if user is None:
             return None
-        MEETINGS_TO_FORECAST_SHIFT = (-1, 1)
         upcoming_meetings = self.get_upcoming_meetings(window, date)
         if len(upcoming_meetings[0]) <= window:
            return None
+        
         first_column = upcoming_meetings[0][0].col + MEETINGS_TO_FORECAST_SHIFT[1]
         last_column = upcoming_meetings[0][-1].col + MEETINGS_TO_FORECAST_SHIFT[1]
         shifted_row = user.row + MEETINGS_TO_FORECAST_SHIFT[0]
@@ -97,12 +114,32 @@ class AttendanceSheetController():
         # return self.get_user_forecasts(user, date)[0:3]
     
     def add_user(self, user: User) -> UserReturn:
-        if self.get_user(user) is None:
+        searched_user = self.get_user(user)
+        if searched_user is None:
             self.users_sheet.append_table([user.email, user.first, user.last])
             return self.get_user(user)
         else:
-            return self.get_user(user)
+            return searched_user
 
+    def update_attendance(self, poll: AttendancePoll):
+        user = self.add_user(poll.user) # add user if not exist
+        # self.attendance_sheet.unlink()
+        first_entry = self.get_attendance_entry(user, poll.attendances[0].meetingTime.start)
+        starting_column = first_entry.col
+        self.attendance_sheet.update_row(user.row, [attendance.attendance for attendance in poll.attendances], starting_column)
+        return True
+    
+    def batch_update_attendance(self, jobs: List[AttendanceJob]):
+        print("HERE")
+        # self.attendance_sheet.unlink()
+        for job in jobs:
+            column = job.starting_column + 1
+            for attendance in job.attendances.attendances:
+                print(attendance)
+                self.attendance_sheet.update_value((job.user.row, column), attendance.attendance)
+                column += 1
+        # self.attendance_sheet.link()
+        return True
 # user1 = UserCreate(email="ky200617@gmail.com")
 # userR1 = AttendanceSheetController().get_user(user1)
 # # AttendanceSheet().get_attendance(user1, date=datetime(2022,12,5))
@@ -111,3 +148,11 @@ class AttendanceSheetController():
 # # AttendanceSheet().get_user_attendances(user2)
 # print(AttendanceSheetController().get_upcoming_meetings(3, date=datetime(2022, 12, 3)))
 # print(AttendanceSheetController().get_attendance_poll(userR1, 3, date=datetime(2022, 12, 3)).generate_slack_poll())
+# if __name__ == "__main__":
+#     user1 = UserCreate(email="ky200617@gmail.com")
+#     userR1 = AttendanceSheetController().get_user(user1)
+#     attendance_poll = AttendanceSheetController().get_attendance_poll(userR1, 3, date=datetime(2022, 12, 3))
+#     print(attendance_poll)
+#     for attendance in attendance_poll.attendances:
+#         attendance.attendance = True
+#     AttendanceSheetController().update_attendance(attendance_poll)

@@ -10,6 +10,9 @@ class UserCreate():
     def __init__(self, email):
         self.email = email
 
+    def __repr__ (self):
+        return f"{self.email}"
+
 class User(UserCreate):
     first: str
     last: str
@@ -18,8 +21,9 @@ class User(UserCreate):
         self.first = first
         self.last = last
     
-    def __str__(self):
-        return f"User {self.row}: {self.first} {self.last}"
+    def __repr__ (self):
+        base = super().__repr__()
+        return f"{base}: {self.first} {self.last}"
 
 class UserReturn(User):
     row: int
@@ -28,6 +32,10 @@ class UserReturn(User):
         self.row = row
         self.first = first
         self.last = last
+    
+    def __repr__ (self):
+        base = super().__repr__()
+        return f"{base}: {self.row}"
 
 class MeetingTime():
     start: datetime
@@ -73,6 +81,19 @@ class Attendance():
     
     def __repr__(self) -> str:
         return str(self)
+    
+    def __eq__(self, __o: object) -> bool:
+        if isinstance(__o, Attendance):
+            return self.meetingTime.start == __o.meetingTime.start
+        return False
+
+    def __lt__(self, __o: object) -> bool:
+        if isinstance(__o, Attendance):
+            return self.meetingTime.start < __o.meetingTime.start
+        return False
+    
+    def __hash__(self) -> int:
+        return hash(self.meetingTime.start)
 
 class AttendancePoll():
     attendances: List[Attendance]
@@ -81,8 +102,18 @@ class AttendancePoll():
         self.attendances = attendances
         self.user = user
 
+    def __str__(self) -> str:
+        return f"{self.user}: {self.attendances}"
+    
+    @staticmethod 
+    def update_total(total: List[Attendance], updated: List[Attendance]) -> List[Attendance]:
+        set_attendances = set(updated) | set(total) # Update takes precedence, so the state in updated will be used first
+        attendances = list(set_attendances)
+        attendances.sort()
+        return attendances
+
     @staticmethod
-    def reverse_slack_poll(body: Dict) -> AttendancePoll:
+    def reverse_slack_poll(body: Dict, state: bool) -> List[Attendance]:
         attendances = []
         for meetingTime in body:
             title = meetingTime["text"]["text"]
@@ -94,14 +125,12 @@ class AttendancePoll():
 
             start_time = datetime.strptime(f"{datetime.now().year}/{raw_date} {start_time}", "%Y/%m/%d %I:%M %p")
             end_time = datetime.strptime(f"{datetime.now().year}/{raw_date} {end_time}", "%Y/%m/%d %I:%M %p")
-            print(start_time)
             # meetingTime = meetingTime["value"]
             # meetingTime = datetime.strptime(meetingTime, "%m/%d")
             # meetingTime = MeetingTime(meetingTime, meetingTime)
             # attendances.append(Attendance(meetingTime, True))
-            attendance = Attendance(MeetingTime(start_time, end_time), True) # If entry is in state, then it is True by Slack Default
+            attendance = Attendance(MeetingTime(start_time, end_time), state) # If entry is in state, then it is True by Slack Default
             attendances.append(attendance)
-        print(attendances)
         return attendances
 
     def generate_slack_poll(self) -> str:
@@ -176,17 +205,24 @@ class AttendancePoll():
 
         return poll
         
-
+class AttendanceJob(AttendancePoll):
+    user: UserReturn
+    starting_column: int
+    def __init__(self, user: UserReturn, starting_column: int, attendances: List[Attendance]):
+        super().__init__(attendances, user)
+        self.starting_column = starting_column
+        self.user = user
+    
 # if __name__ == "__main__":
-meetingTime1 = MeetingTime(startTime=datetime(2022, 12, 1, 18, 30, 0), endTime=datetime(2022, 12, 1, 21, 0, 0))
-meetingTime2 = MeetingTime(startTime=datetime(2022, 12, 2, 18, 30, 0), endTime=datetime(2022, 12, 2, 21, 0, 0))
-meetingTime3 = MeetingTime(startTime=datetime(2022, 12, 3, 18, 30, 0), endTime=datetime(2022, 12, 3, 21, 0, 0))
-meetingTime4 = MeetingTime(startTime=datetime(2022, 12, 4, 18, 30, 0), endTime=datetime(2022, 12, 4, 21, 0, 0))
+# meetingTime1 = MeetingTime(startTime=datetime(2022, 12, 1, 18, 30, 0), endTime=datetime(2022, 12, 1, 21, 0, 0))
+# meetingTime2 = MeetingTime(startTime=datetime(2022, 12, 2, 18, 30, 0), endTime=datetime(2022, 12, 2, 21, 0, 0))
+# meetingTime3 = MeetingTime(startTime=datetime(2022, 12, 3, 18, 30, 0), endTime=datetime(2022, 12, 3, 21, 0, 0))
+# meetingTime4 = MeetingTime(startTime=datetime(2022, 12, 4, 18, 30, 0), endTime=datetime(2022, 12, 4, 21, 0, 0))
 
-attendance1 = Attendance(meetingTime=meetingTime1, attendance=True)
-attendance2 = Attendance(meetingTime=meetingTime2, attendance=False)
-attendance3 = Attendance(meetingTime=meetingTime3, attendance=True)
+# attendance1 = Attendance(meetingTime=meetingTime1, attendance=True)
+# attendance2 = Attendance(meetingTime=meetingTime2, attendance=False)
+# attendance3 = Attendance(meetingTime=meetingTime3, attendance=True)
 
-attendances = [attendance1, attendance2, attendance3]
+# attendances = [attendance1, attendance2, attendance3]
 # attendancePoll = AttendancePoll(attendances=attendances)
 # print(attendancePoll.generate_slack_poll())
