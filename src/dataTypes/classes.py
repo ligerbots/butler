@@ -57,6 +57,9 @@ class MeetingTime:
         self.start = startTime
         self.end = endTime
 
+    def __repr__(self) -> str:
+        return f"{self.title()}: {self.timeSlot()}"
+
     # Returns the time slot in the format "6:30 PM ➡  9:00 PM"
     def timeSlot(self) -> str:
         TIME_SLOT_FORMAT = "%I:%M %p"
@@ -78,6 +81,7 @@ class MeetingTime:
         return self.start.strftime("%m/%d")
 
 
+
 class Attendance:
     meetingTime: MeetingTime
     attendance: bool
@@ -90,7 +94,7 @@ class Attendance:
         self.attendance = attendance
 
     def __str__(self) -> str:
-        return f"{self.meetingTime.title()}: {self.attendance}"
+        return f"{self.meetingTime}: {self.attendance}"
 
     def __repr__(self) -> str:
         return str(self)
@@ -119,6 +123,9 @@ class AttendancePoll:
 
     def __str__(self) -> str:
         return f"{self.user}: {self.attendances}"
+    
+    def __repr__(self) -> str:
+        return str(self)
 
     @staticmethod
     def update_total(

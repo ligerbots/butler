@@ -135,3 +135,4 @@ secrets/*
 secrets-load.sh
 config/secrets/*
 !.gitkeep
+slack_ids.json

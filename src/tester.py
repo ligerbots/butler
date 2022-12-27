@@ -4,4 +4,4 @@ from .google.sheet_controller import AttendanceSheetController
 from datetime import datetime
 
 new_user = User("kevin@beantownbash.org", "Kevin", "Yang")
-AttendanceSheetController().lookup_or_add_user(new_user)
+AttendanceSheetController().batch_get_forecasts(None)
