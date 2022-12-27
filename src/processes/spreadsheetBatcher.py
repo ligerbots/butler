@@ -4,7 +4,7 @@ from ..google.sheet_controller import AttendanceSheetController
 from typing import Dict
 
 
-class SpreadsheetThreadPool(Process):
+class SpreadsheetBatcher(Process):
     def __init__(self, queue: Queue, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.queue = queue
