@@ -1,6 +1,6 @@
 from multiprocessing import Queue, Process
 from ..dataTypes.classes import User, ForecastJob
-from .sheet_controller import AttendanceSheetController
+from ..google.sheet_controller import AttendanceSheetController
 from typing import Dict
 
 

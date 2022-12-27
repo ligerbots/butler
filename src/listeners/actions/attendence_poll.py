@@ -15,8 +15,7 @@ from ...dataTypes.classes import (
     ForecastPayload,
     User,
 )
-from ...main import spreadsheetUpdateQueue
-
+from ...process import spreadsheetUpdateQueue
 
 def attendance_poll_callback(ack: Ack, client: WebClient, body: dict, logger: Logger):
     try:

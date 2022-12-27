@@ -18,10 +18,7 @@ from ..dataTypes.classes import User
 def admin_check(ack: Ack, client: WebClient, body: dict, logger: Logger) -> bool:
     """Check if user is admin"""
     user_id = body["user_id"]
-    user_profile = client.users_profile_get(user=user_id)["profile"]
 
-    user = User(email=user_profile["email"], first=user_profile["first_name"], last=user_profile["last_name"])
-    
     with open("config/slack_ids.json", "r") as f:
         slack_ids = json.load(f)
     

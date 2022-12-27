@@ -1,5 +1,5 @@
 from multiprocessing import Queue
-from .google.spreadsheetThreadPooler import SpreadsheetThreadPool
+from .processes.spreadsheetThreadPooler import SpreadsheetThreadPool
 
 # Start SpreadsheetThreadPooler as side process
 
