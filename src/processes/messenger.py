@@ -2,7 +2,7 @@ from multiprocessing import Process
 from ..app import app
 from slack_bolt import App
 
-from typing import List
+from typing import Dict
 from ..google.sheet_controller import AttendanceSheetController
 from ..dataTypes.classes import User, UserReturn
 

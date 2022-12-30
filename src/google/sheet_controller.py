@@ -328,6 +328,7 @@ class AttendanceSheetController:
 
             attendances = []
             for i in range(latest_date_index, latest_date_index + window):
+                print(i)
                 print("HEADER IS:", forecast_sheet_header[i])
                 if forecast_sheet_header[i] == "":
                     break
@@ -340,8 +341,10 @@ class AttendanceSheetController:
                     break
 
                 meetingTime = meeting_mapper[date]
-                attendance = Attendance(meetingTime, bool(entry[i]))
+                status = True if entry[i].upper() == "TRUE" else False
+                attendance = Attendance(meetingTime, status)
                 attendances.append(attendance)
+            print("Attendances are: ", attendances)
 
             forecasts[user] = AttendancePoll(attendances=attendances, user=user)
 
