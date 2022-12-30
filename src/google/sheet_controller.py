@@ -73,6 +73,8 @@ class AttendanceSheetController:
         self, window: int, date: datetime = datetime.now()
     ) -> List[Cell]:
         current_date_cell = self.get_nearest_date(date)
+        if current_date_cell is None:
+            return []
         remaining_meetings = self.meetings_sheet.get_values(
             (current_date_cell.row, current_date_cell.col),
             (current_date_cell.row + 1, current_date_cell.col + window),
@@ -118,6 +120,8 @@ class AttendanceSheetController:
         if user is None:
             return None
         upcoming_meetings = self.get_upcoming_meetings(window, date)
+        if len(upcoming_meetings) == 0:
+            return None
         if len(upcoming_meetings[0]) == 0:
             # No more meetings!
             return None
