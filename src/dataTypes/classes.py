@@ -15,6 +15,8 @@ class UserCreate:
         return f"{self.email}"
 
     def __eq__(self, other):
+        if other == None:
+            return False
         return self.email == other.email
 
     def __hash__(self):
@@ -241,6 +243,7 @@ class AttendancePoll:
         
         # Do not add initial options if there are none. Slack gets mad if you do.
         if initial_options is not None:
+            print("Adding initial options")
             poll["elements"][0]["initial_options"] = initial_options
         return poll
 

@@ -158,6 +158,6 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
             ]
         print("--------------------")
         pprint(blocks)
-        say(blocks=blocks, text="Pick a date to remind you")
+        say(blocks=blocks)
     except Exception as e:
         print(e)

@@ -159,14 +159,17 @@ class AttendanceSheetController:
         print("HERE")
         return attendancePoll
 
+    def add_user(self, user: User) -> UserReturn:
+        first_col = self.users_sheet.get_col(1, include_tailing_empty=False)
+        blank_row = len(first_col) + 1
+        self.users_sheet.update_row(blank_row, [user.email, user.first, user.last])
+        return self.get_user(user)
+
     # Both checks for user and adds user if not exist
     def lookup_or_add_user(self, user: User) -> UserReturn:
         searched_user = self.get_user(user)  # Check if user exists
         if searched_user is None:
-            self.users_sheet.append_table(
-                [user.email, user.first, user.last]
-            )  # Add user to the end of the Users sheet
-            return self.get_user(user)
+            return self.add_user(user)
         else:
             return searched_user
 
@@ -222,10 +225,14 @@ class AttendanceSheetController:
 
         return True
 
-    def batch_get_forecasts(
-        self, users: List[User], window: int = 1, date: Optional[datetime] = datetime.now()
+    # Grabs the forecasts for a certain window for all users in the sheet
+    def get_all_forecasts(
+        self,
+        # users: List[User],
+        window: int = 1,
+        date: Optional[datetime] = datetime.now(),
     ) -> Optional[Dict[User, AttendancePoll]]:
-        rang = GridRange.create(data=((0,0), (None, None)), wks=self.forecast_sheet)
+        rang = GridRange.create(data=((0, 0), (None, None)), wks=self.forecast_sheet)
 
         # Get the entire sheet
         forecast_sheet = self.forecast_sheet.get_values(
@@ -242,7 +249,9 @@ class AttendanceSheetController:
             returnas="matrix",
         )
 
-        meeting_range = GridRange.create(data=((2,1), (None, None)), wks=self.meetings_sheet)
+        meeting_range = GridRange.create(
+            data=((2, 1), (None, None)), wks=self.meetings_sheet
+        )
         meeting_sheet = self.meetings_sheet.get_values(
             grange=meeting_range,
             include_tailing_empty=False,
@@ -262,16 +271,15 @@ class AttendanceSheetController:
 
         for i, header in enumerate(forecast_sheet_header):
             forecast_sheet_header_mapper[header] = i
-        
+
         for i, header in enumerate(user_sheet_header):
             user_sheet_header_mapper[header] = i
 
         for i, header in enumerate(meeting_sheet_header):
             meeting_sheet_header_mapper[header] = i
-        
 
-        ROW_SHIFT = 1 # To make the row indexes match between code and real life. Currently shifts by 1 to avoid 0 indexing.
-        FORECASTS_START_COLUMN = 3 # The column where the forecasts start
+        ROW_SHIFT = 1  # To make the row indexes match between code and real life. Currently shifts by 1 to avoid 0 indexing.
+        FORECASTS_START_COLUMN = 3  # The column where the forecasts start
 
         meeting_mapper: Dict[datetime, MeetingTime] = {}
         for row, entry in enumerate(meeting_sheet[1:]):
@@ -279,18 +287,22 @@ class AttendanceSheetController:
             endTime_raw = entry[meeting_sheet_header_mapper["End Time"]]
             startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT)
             endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
-            
+
             print(startTime, endTime)
             meetingTime = MeetingTime(startTime=startTime, endTime=endTime)
             meeting_mapper[startTime] = meetingTime
-            
+
         print(meeting_mapper)
-            
+
         # Users are unique by row
         user_mapper = {}
         for row, entry in enumerate(user_sheet[1:]):
-            user_mapper[row+ROW_SHIFT] = User(email=entry[user_sheet_header_mapper['Email']], first=entry[user_sheet_header_mapper['First']], last=entry[user_sheet_header_mapper['Last']])
-    
+            user_mapper[row + ROW_SHIFT] = User(
+                email=entry[user_sheet_header_mapper["Email"]],
+                first=entry[user_sheet_header_mapper["First"]],
+                last=entry[user_sheet_header_mapper["Last"]],
+            )
+
         forecasts: Dict[User, AttendancePoll] = {}
 
         if date is None:
@@ -301,35 +313,58 @@ class AttendanceSheetController:
                 print("NO MORE MEETINGS")
                 return None
             latest_date = datetime.strptime(latest_date_raw.value, MEETING_TIME_FORMAT)
-            latest_date_index = forecast_sheet_header_mapper[latest_date.strftime(MEETING_TIME_FORMAT_SHORT)]
+            latest_date_index = forecast_sheet_header_mapper[
+                latest_date.strftime(MEETING_TIME_FORMAT_SHORT)
+            ]
 
         for row, entry in enumerate(forecast_sheet[1:]):
-            if entry[forecast_sheet_header_mapper['First']] == '' and entry[forecast_sheet_header_mapper['Last']] == '':
+            if (
+                entry[forecast_sheet_header_mapper["First"]] == ""
+                and entry[forecast_sheet_header_mapper["Last"]] == ""
+            ):
                 break
 
-            user = user_mapper[row+ROW_SHIFT]
-            
+            user = user_mapper[row + ROW_SHIFT]
+
             attendances = []
-            for i in range(latest_date_index, latest_date_index+window):
-                date = datetime.strptime(forecast_sheet_header[i], MEETING_TIME_FORMAT_SHORT)
-                if entry[i] == '':
+            for i in range(latest_date_index, latest_date_index + window):
+                print("HEADER IS:", forecast_sheet_header[i])
+                if forecast_sheet_header[i] == "":
+                    break
+
+                date = datetime.strptime(
+                    forecast_sheet_header[i], MEETING_TIME_FORMAT_SHORT
+                )
+                if entry[i] == "":
                     print("ERROR IN VALUE")
                     break
-                
+
                 meetingTime = meeting_mapper[date]
-                attendance = Attendance(date, bool(entry[i]))
+                attendance = Attendance(meetingTime, bool(entry[i]))
                 attendances.append(attendance)
-            
-            forecasts[user] = AttendancePoll(meetingTime, attendances)
 
+            forecasts[user] = AttendancePoll(attendances=attendances, user=user)
 
+        return forecasts
+        # Filter out users that are not in the inputted list
+        # users_to_remove = []
+        # for user in forecasts:
+        #     # user no in users is unideal, but it works
+        #     if user not in users:
+        #         users_to_remove.append(user)
+        
+        # for user in users_to_remove:
+        #     # Del is unsafe if the key is not in the dict, but we know it is
+        #     del forecasts[user]
+        
+        # return forecasts
         # print(entries)
         # header = entire_sheet[0]
         # dates = header[3:]
         # print(dates)
         # print(header)
         # print(entire_sheet)
-        
+
         # df = pd.DataFrame(entire_sheet)
         # print(df)
 
