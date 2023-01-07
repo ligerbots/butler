@@ -80,7 +80,7 @@ class Messenger(Process):
                 continue
             users[user] = id
 
-        forecasts = self.sheetController.get_all_forecasts(window=4, date=datetime.now())
+        forecasts = self.sheetController.get_forecasts_upcoming_week(date=datetime.now())
         
         if forecasts == None:
             print("No forecasts found. Nothing to send. Exiting.")
