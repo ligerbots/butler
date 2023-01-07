@@ -64,6 +64,12 @@ class AttendanceSheetController:
                 return cell
         return None
 
+    def get_nearest_datetime(self, date: datetime = datetime.now()) -> Optional[datetime]:
+        nearest_date = self.get_nearest_date(date)
+        if nearest_date is None:
+            return None
+        return self.meeting_cell_time_format(nearest_date)
+    
     def get_upcoming_meetings(
         self, window: int, date: datetime = datetime.now()
     ) -> List[MeetingSheetEntry]:
