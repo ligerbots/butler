@@ -162,7 +162,7 @@ class AttendanceSheetController:
         for i in range(len(upcoming_meetings)):
             
             meetingCellSheet = upcoming_meetings[i]
-            
+
             # Map spreadsheet values to python booleans
             attendance_state = True if forecast_range[0][i].value == "TRUE" else False
 
@@ -188,6 +188,12 @@ class AttendanceSheetController:
             return self.add_user(user)
         else:
             return searched_user
+
+    def get_forecast_success(self, date: datetime) -> bool:
+        LIGER_USER = UserReturn("forecast@ligerbots.org", 1, "Liger", "Forecast")
+
+        cell = self.get_forecast_entry(user = LIGER_USER, date = date)
+        return True if cell.value == "TRUE" else False
 
     ## Update the forecast sheet with the attendance poll
     ## THIS FUNCTION IS SOOOOOO SLOW. USE BATCH UPDATE FORECAST INSTEAD!!!
