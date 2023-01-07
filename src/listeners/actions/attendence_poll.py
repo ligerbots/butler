@@ -3,8 +3,6 @@ from logging import Logger
 from slack_bolt import Ack
 from slack_sdk import WebClient
 
-from pprint import pprint
-
 from typing import List
 
 from ...google.sheet_controller import AttendanceSheetController

@@ -6,4 +6,3 @@ from .processes.spreadsheetBatcher import SpreadsheetBatcher
 spreadsheetUpdateQueue = Queue() # Queue used to pass Spreadsheet Update Jobs based off of AttendancePolls
 spreadsheetThreadPool = SpreadsheetBatcher(spreadsheetUpdateQueue)
 spreadsheetThreadPool.start()
-
