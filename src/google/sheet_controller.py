@@ -20,12 +20,8 @@ gc = pygsheets.authorize(service_file="config/secrets/g-service.json")
 
 
 MEETINGS_TO_FORECAST_SHIFT = (-1, 2)
-MEETING_TIME_FORMAT = "%m/%d/%Y %H:%M"
-MEETING_TIME_FORMAT_NO_LEADING_ZERO = (
-    "%m/%-d/%Y %H:%M"  # - removes the leading zero from the day
-)
-MEETING_TIME_FORMAT_SHORT = "%m/%d/%Y"
-
+MEETING_TIME_FORMAT = "%m,%d,%Y %H:%M"
+MEETING_TIME_FORMAT_SHORT = "%m,%d,%Y"
 
 class AttendanceSheetController:
     def __init__(self):
@@ -44,7 +40,7 @@ class AttendanceSheetController:
 
     @staticmethod
     def reverse_meeting_cell_time_format(date: datetime) -> str:
-        time_format = MEETING_TIME_FORMAT_NO_LEADING_ZERO
+        time_format = MEETING_TIME_FORMAT
         return date.strftime(time_format)
 
     # Get dates from the Meetings sheet based off of the named range "Dates"
@@ -59,11 +55,13 @@ class AttendanceSheetController:
     # Get the nearest date to the current date
     def get_nearest_date(self, date: datetime = datetime.now()) -> Optional[Cell]:
         dates = self.get_dates()
+        print("DATES ARE: ", dates)
         actual_dates = []
         for cell in dates[0]:
             if len(cell.value) == 0:
-                break
+                continue
             date_value = datetime.strptime(cell.value, MEETING_TIME_FORMAT)
+            print("Date Value: ", date_value)
             actual_dates.append(cell)
             if date_value > date:
                 return cell
@@ -95,7 +93,7 @@ class AttendanceSheetController:
 
     def translate_date_column(self, date: datetime) -> Optional[int]:
         cell = self.meetings_sheet.find(
-            date.strftime(MEETING_TIME_FORMAT_NO_LEADING_ZERO)
+            date.strftime(MEETING_TIME_FORMAT)
         )
         if len(cell) == 0:
             return None
@@ -104,6 +102,7 @@ class AttendanceSheetController:
     def get_forecast_entry(self, user: UserReturn, date: datetime) -> Optional[Cell]:
         column = self.translate_date_column(date)
         if column == None:
+            print("Column is None!")
             return None
         return self.forecast_sheet.cell((user.row, column))
 
@@ -126,7 +125,6 @@ class AttendanceSheetController:
             # No more meetings!
             return None
 
-        print("Upcoming Meetings:   ", upcoming_meetings)
         # Hard coded optimization so we can avoid another search API Call (which is O(n))
         # Assumes that the meetings are sorted!
         first_column = upcoming_meetings[0][0].col + MEETINGS_TO_FORECAST_SHIFT[1]
@@ -155,8 +153,6 @@ class AttendanceSheetController:
 
         returnUser = User(user.email, user.first, user.last)
         attendancePoll = AttendancePoll(attendances, returnUser)
-        print(attendancePoll)
-        print("HERE")
         return attendancePoll
 
     def add_user(self, user: User) -> UserReturn:
@@ -270,7 +266,13 @@ class AttendanceSheetController:
         meeting_sheet_header_mapper = {}
 
         for i, header in enumerate(forecast_sheet_header):
+            try:
+                time_object = datetime.strptime(header, MEETING_TIME_FORMAT)
+                header = time_object.strftime(MEETING_TIME_FORMAT_SHORT)
+            except ValueError:
+                pass
             forecast_sheet_header_mapper[header] = i
+            
 
         for i, header in enumerate(user_sheet_header):
             user_sheet_header_mapper[header] = i
@@ -285,14 +287,30 @@ class AttendanceSheetController:
         for row, entry in enumerate(meeting_sheet[1:]):
             startTime_raw = entry[meeting_sheet_header_mapper["Start Time"]]
             endTime_raw = entry[meeting_sheet_header_mapper["End Time"]]
-            startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT)
-            endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
-
-            print(startTime, endTime)
+            print("RAW:")
+            print(startTime_raw, endTime_raw)
+            try:
+                startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT)
+                endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
+            except Exception as e:
+                print("FUCK ME", e)
+                startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT)
+                endTime=datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
+            # try:
+            #     startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT)
+            #     endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
+            # except Exception as e:
+            #     print(e)
+            #     try:
+            #         print(f"AGH 2: {startTime_raw}")
+            #         startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT_NO_LEADING_ZERO)
+            #         endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT_NO_LEADING_ZERO)
+            #     except:
+            #         print(f"AGH: {startTime_raw}")
+            #         startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT_WITH_SECONDS)
+            #         endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT_WITH_SECONDS)
             meetingTime = MeetingTime(startTime=startTime, endTime=endTime)
             meeting_mapper[startTime] = meetingTime
-
-        print(meeting_mapper)
 
         # Users are unique by row
         user_mapper = {}
@@ -302,6 +320,8 @@ class AttendanceSheetController:
                 first=entry[user_sheet_header_mapper["First"]],
                 last=entry[user_sheet_header_mapper["Last"]],
             )
+            if user_mapper[row + ROW_SHIFT] == None:
+                del user_mapper[row + ROW_SHIFT]
 
         forecasts: Dict[User, AttendancePoll] = {}
 
@@ -313,9 +333,16 @@ class AttendanceSheetController:
                 print("NO MORE MEETINGS")
                 return None
             latest_date = datetime.strptime(latest_date_raw.value, MEETING_TIME_FORMAT)
-            latest_date_index = forecast_sheet_header_mapper[
-                latest_date.strftime(MEETING_TIME_FORMAT_SHORT)
-            ]
+            print("LATEST DATE IS:", latest_date)
+            print("Forecast sheet header is:", forecast_sheet_header_mapper)
+            try:
+                latest_date_index = forecast_sheet_header_mapper[
+                    latest_date.strftime(MEETING_TIME_FORMAT_SHORT)
+                ]
+            except:
+                latest_date_index = forecast_sheet_header_mapper[
+                    latest_date.strftime(MEETING_TIME_FORMAT_SHORT)
+                ]
 
         for row, entry in enumerate(forecast_sheet[1:]):
             if (
@@ -334,12 +361,18 @@ class AttendanceSheetController:
                     break
 
                 date = datetime.strptime(
-                    forecast_sheet_header[i], MEETING_TIME_FORMAT_SHORT
+                    forecast_sheet_header[i], MEETING_TIME_FORMAT
                 )
+                # if date not in meeting_mapper:
+                #     date = datetime.strptime(
+                #         forecast_sheet_header[i], MEETING_TIME_FORMAT_SHORT_NO_LEADING_ZERO
+                #     )
                 if entry[i] == "":
                     print("ERROR IN VALUE")
                     break
-
+                
+                print("MEETING MAPPER IS")
+                print(meeting_mapper)
                 meetingTime = meeting_mapper[date]
                 status = True if entry[i].upper() == "TRUE" else False
                 attendance = Attendance(meetingTime, status)
@@ -347,7 +380,7 @@ class AttendanceSheetController:
             print("Attendances are: ", attendances)
 
             forecasts[user] = AttendancePoll(attendances=attendances, user=user)
-
+        print("COMING OUT OF GET ALL FORECASTS")
         return forecasts
         # Filter out users that are not in the inputted list
         # users_to_remove = []

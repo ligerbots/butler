@@ -29,20 +29,20 @@ class Messenger(Process):
                 raise Exception("Message List ID not found in config/slack_ids.json")
             
             message_list = self.client.usergroups_users_list(usergroup=message_list_id)
-            print(message_list)
+            # print(message_list)
             if message_list["ok"] == False:
                 raise Exception("Message List ID not found in config/slack_ids.json")
             return message_list["users"]
 
         user_ids = getMessageList()
         user_profiles = [self.client.users_profile_get(user = x)["profile"] for x in user_ids]
-        print(user_profiles)
+        # print(user_profiles)
         
         # str being the user id
         users: Dict[UserReturn, str] = {}
 
         for i in range(len(user_profiles)):
-            print(user_profiles[i])
+            # print(user_profiles[i])
             if "first_name" in user_profiles[i] and "last_name" in user_profiles[i]:
                 first = user_profiles[i]["first_name"]
                 last = user_profiles[i]["last_name"]
@@ -60,20 +60,25 @@ class Messenger(Process):
 
             print(f"First: {first}, Last: {last}, Email: {email}")
             user = User(email=email, first=first, last=last)
-            print("User is:", user)
+            # print("User is:", user)
             if user.email == None:
                 raise Exception("User email is None")
             result = self.sheetController.get_user(user)
-            print("Result is:", result)
+            # print("Result is:", result)
             if result == None:
                 result = self.sheetController.add_user(user)
                 greeting = f"Hi {str(first)}! Welcome to the LigerBot! You've been added to the automatic attendance and forecast system! From now on, I'll be sending you forecasts every Saturday morning, and attendance polls 15 minutes before every meeting."
                 print(greeting)
                 self.client.chat_postMessage(channel=id, text=greeting)
+            if id == None:
+                continue
             users[user] = id
 
-        print(users)
         forecasts = self.sheetController.get_all_forecasts(window=4, date=datetime.now())
+        
+        if forecasts == None:
+            print("No forecasts found. Nothing to send. Exiting.")
+            return
 
         print("Entering forecast sending loop")
         for user in users:

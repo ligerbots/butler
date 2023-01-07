@@ -32,9 +32,15 @@ class SpreadsheetBatcher(Process):
 
                     # Grab the starting column based off of the first date in AttendancePoll
                     # Note: AttendancePoll is sorted by date (earliest to latest)
+                    
                     starting_column = self.attendancePollController.get_forecast_entry(
                         user, attendancePoll.attendances[0].meetingTime.start
-                    ).col
+                    )
+                    if starting_column is None:
+                        raise Exception(
+                            f"Could not find starting column for user {user} and date {attendancePoll.attendances[0].meetingTime.start}"
+                        )
+                    starting_column = starting_column.col
 
                     # Construct ForecastJob to be used by batch update
                     attendanceJob = ForecastJob(
