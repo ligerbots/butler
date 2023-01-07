@@ -50,14 +50,10 @@ class UserReturn(User):
         base = super().__repr__()
         return f"{base}: {self.row}"
 
-
+@dataclass
 class MeetingTime:
     start: datetime
     end: datetime
-
-    def __init__(self, startTime: datetime, endTime: datetime):
-        self.start = startTime
-        self.end = endTime
 
     def __repr__(self) -> str:
         return f"{self.title()}: {self.timeSlot()}"
@@ -82,8 +78,14 @@ class MeetingTime:
     def date(self) -> str:
         return self.start.strftime("%m/%d")
 
+@dataclass
+class MeetingSheetEntry(MeetingTime):
+    row: int
+    column: int
 
-
+    def __repr__(self) -> str:
+        return f"{(self.row, self.column)}: {super().__repr__()}"
+    
 class Attendance:
     meetingTime: MeetingTime
     attendance: bool

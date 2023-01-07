@@ -2,9 +2,7 @@ import pygsheets
 from pygsheets import DataRange, Cell, GridRange
 
 from typing import Optional, List, Dict
-from datetime import datetime
-
-import pandas as pd
+from datetime import datetime, timedelta
 
 from ..dataTypes.classes import (
     MeetingTime,
@@ -14,6 +12,7 @@ from ..dataTypes.classes import (
     UserReturn,
     User,
     ForecastJob,
+    MeetingSheetEntry
 )
 
 gc = pygsheets.authorize(service_file="config/secrets/g-service.json")
@@ -55,13 +54,11 @@ class AttendanceSheetController:
     # Get the nearest date to the current date
     def get_nearest_date(self, date: datetime = datetime.now()) -> Optional[Cell]:
         dates = self.get_dates()
-        print("DATES ARE: ", dates)
         actual_dates = []
         for cell in dates[0]:
             if len(cell.value) == 0:
                 continue
             date_value = datetime.strptime(cell.value, MEETING_TIME_FORMAT)
-            print("Date Value: ", date_value)
             actual_dates.append(cell)
             if date_value > date:
                 return cell
@@ -69,7 +66,7 @@ class AttendanceSheetController:
 
     def get_upcoming_meetings(
         self, window: int, date: datetime = datetime.now()
-    ) -> List[Cell]:
+    ) -> List[MeetingSheetEntry]:
         current_date_cell = self.get_nearest_date(date)
         if current_date_cell is None:
             return []
@@ -79,7 +76,34 @@ class AttendanceSheetController:
             include_tailing_empty=False,
             returnas="cell",
         )
-        return remaining_meetings
+        if remaining_meetings is None or len(remaining_meetings) != 2:
+            raise ValueError("Spreadsheet not formatted correctly. Please check the Meetings sheet. There are no start or end rows")
+        
+        if len(remaining_meetings[0]) != len(remaining_meetings[1]):
+            raise ValueError("Spreadsheet not formatted correctly. Start and End time rows do not match in length.")
+        
+        start_times = remaining_meetings[0]
+        end_times = remaining_meetings[1]
+        meeting_times: List[MeetingSheetEntry] = []
+
+        for x in range(len(start_times)):
+            start_time = self.meeting_cell_time_format(start_times[x])
+            end_time = self.meeting_cell_time_format(end_times[x])
+            meeting_times.append(MeetingSheetEntry(start = start_time, end = end_time, column = start_times[x].col, row = start_times[x].row))
+
+        return meeting_times
+
+    # Wrapper of get_upcoming_meetings to get the next week of meetings
+    def get_upcoming_week_meetings(self, date: datetime = datetime.now()) -> List[MeetingSheetEntry]:
+        # Find the number of meeting entries until the next week
+        current_date_cell = self.get_nearest_date(date)
+        if current_date_cell is None:
+            return []
+        next_week = date + timedelta(days=7)
+        next_week_cell = self.get_nearest_date(next_week)
+        if next_week_cell is None:
+            return []
+        return self.get_upcoming_meetings(next_week_cell.col - current_date_cell.col, date)
 
     def get_user(self, user: UserCreate) -> Optional[UserReturn]:
         search = self.users_sheet.find(user.email)
@@ -119,16 +143,14 @@ class AttendanceSheetController:
         if user is None:
             return None
         upcoming_meetings = self.get_upcoming_meetings(window, date)
+
         if len(upcoming_meetings) == 0:
             return None
-        if len(upcoming_meetings[0]) == 0:
-            # No more meetings!
-            return None
-
+        
         # Hard coded optimization so we can avoid another search API Call (which is O(n))
         # Assumes that the meetings are sorted!
-        first_column = upcoming_meetings[0][0].col + MEETINGS_TO_FORECAST_SHIFT[1]
-        last_column = upcoming_meetings[0][-1].col + MEETINGS_TO_FORECAST_SHIFT[1]
+        first_column = upcoming_meetings[0].column + MEETINGS_TO_FORECAST_SHIFT[1]
+        last_column = upcoming_meetings[-1].column + MEETINGS_TO_FORECAST_SHIFT[1]
 
         forecast_range = self.forecast_sheet.get_values(
             (user.row, first_column),
@@ -137,17 +159,15 @@ class AttendanceSheetController:
             returnas="cell",
         )
         attendances = []
-        for i in range(len(upcoming_meetings[0])):
-            meetingTime = MeetingTime(
-                self.meeting_cell_time_format(upcoming_meetings[0][i]),
-                self.meeting_cell_time_format(upcoming_meetings[1][i]),
-            )
-
+        for i in range(len(upcoming_meetings)):
+            
+            meetingCellSheet = upcoming_meetings[i]
+            
             # Map spreadsheet values to python booleans
             attendance_state = True if forecast_range[0][i].value == "TRUE" else False
 
             attendance = Attendance(
-                meetingTime=meetingTime, attendance=attendance_state
+                meetingTime=meetingCellSheet, attendance=attendance_state
             )
             attendances.append(attendance)
 

@@ -11,6 +11,12 @@ from datetime import datetime
 import json
 # Send slack messages to users when it is time for a meeting based off of the spreadsheet
 # Send poll message every Sunday!
+
+# Return status codes:
+# 0: Success
+# 1: Failure
+# 2: No meetings left
+
 class Messenger(Process):
     def __init__(self):
         super().__init__()
@@ -78,12 +84,10 @@ class Messenger(Process):
         
         if forecasts == None:
             print("No forecasts found. Nothing to send. Exiting.")
-            return
+            return 1
 
-        print("Entering forecast sending loop")
         for user in users:
             forecast = forecasts[user]
-            print(f"Sending forecast to {user.email}")
             id = users[user]
             json_poll = forecast.generate_slack_poll()
             blocks = [
