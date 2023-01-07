@@ -341,7 +341,7 @@ class AttendanceSheetController:
             #         print(f"AGH: {startTime_raw}")
             #         startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT_WITH_SECONDS)
             #         endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT_WITH_SECONDS)
-            meetingTime = MeetingTime(startTime=startTime, endTime=endTime)
+            meetingTime = MeetingTime(start=startTime, end=endTime)
             meeting_mapper[startTime] = meetingTime
 
         # Users are unique by row
@@ -414,28 +414,16 @@ class AttendanceSheetController:
             forecasts[user] = AttendancePoll(attendances=attendances, user=user)
         print("COMING OUT OF GET ALL FORECASTS")
         return forecasts
-        # Filter out users that are not in the inputted list
-        # users_to_remove = []
-        # for user in forecasts:
-        #     # user no in users is unideal, but it works
-        #     if user not in users:
-        #         users_to_remove.append(user)
-        
-        # for user in users_to_remove:
-        #     # Del is unsafe if the key is not in the dict, but we know it is
-        #     del forecasts[user]
-        
-        # return forecasts
-        # print(entries)
-        # header = entire_sheet[0]
-        # dates = header[3:]
-        # print(dates)
-        # print(header)
-        # print(entire_sheet)
 
-        # df = pd.DataFrame(entire_sheet)
-        # print(df)
 
-        # for user in users:
-        #     user = self.lookup_or_add_user(user)
-        #     self.forecast_sheet.get_values_batch()
+    def get_forecasts_upcoming_week(self, date: datetime = datetime.now()) -> Optional[Dict[User, AttendancePoll]]:
+            # Find the number of meeting entries until the next week
+        current_date_cell = self.get_nearest_date(date)
+        if current_date_cell is None:
+            return []
+        next_week = date + timedelta(days=7)
+        next_week_cell = self.get_nearest_date(next_week)
+
+        window = next_week_cell.col - current_date_cell.col
+        print("WINDOW IS:", window)
+        return self.get_all_forecasts(window=window, date=date)
