@@ -9,6 +9,7 @@ from ..dataTypes.classes import User, UserReturn
 from datetime import datetime
 
 import json
+
 # Send slack messages to users when it is time for a meeting based off of the spreadsheet
 # Send poll message every Sunday!
 
@@ -16,6 +17,7 @@ import json
 # 0: Success
 # 1: Failure
 # 2: No meetings left
+
 
 class Messenger(Process):
     def __init__(self):
@@ -33,7 +35,7 @@ class Messenger(Process):
                 message_list_id = file["MESSAGE_LIST"]
             if message_list_id == "":
                 raise Exception("Message List ID not found in config/slack_ids.json")
-            
+
             message_list = self.client.usergroups_users_list(usergroup=message_list_id)
             # print(message_list)
             if message_list["ok"] == False:
@@ -41,9 +43,11 @@ class Messenger(Process):
             return message_list["users"]
 
         user_ids = getMessageList()
-        user_profiles = [self.client.users_profile_get(user = x)["profile"] for x in user_ids]
+        user_profiles = [
+            self.client.users_profile_get(user=x)["profile"] for x in user_ids
+        ]
         # print(user_profiles)
-        
+
         # str being the user id
         users: Dict[UserReturn, str] = {}
 
@@ -60,7 +64,7 @@ class Messenger(Process):
                     last = split[1]
                 except:
                     first = "NO FIRST NAME GIVEN"
-            
+
             email = user_profiles[i]["email"]
             id = user_ids[i]
 
@@ -80,8 +84,10 @@ class Messenger(Process):
                 continue
             users[user] = id
 
-        forecasts = self.sheetController.get_forecasts_upcoming_week(date=datetime.now())
-        
+        forecasts = self.sheetController.get_forecasts_upcoming_week(
+            date=datetime.now()
+        )
+
         if forecasts == None:
             print("No forecasts found. Nothing to send. Exiting.")
             return 1
@@ -95,13 +101,17 @@ class Messenger(Process):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Hi! Here is this week's forecast poll.\n*Select the meetings you plan on attending:*"
-                    }
+                        "text": "Hi! Here is this week's forecast poll.\n*Select the meetings you plan on attending:*",
+                    },
                 },
-                json_poll
+                json_poll,
             ]
-            
-            self.client.chat_postMessage(channel=id, blocks=blocks, text="Hi! I was wondering if you could fill out this forecast poll for me? Thanks!")
+
+            self.client.chat_postMessage(
+                channel=id,
+                blocks=blocks,
+                text="Hi! I was wondering if you could fill out this forecast poll for me? Thanks!",
+            )
 
             # self.client.chat_postMessage(channel=forecast.user.email, text=f"Hi {forecast.user.first}! Here's your forecast for the next 4 weeks: {forecast.forecast}")
 

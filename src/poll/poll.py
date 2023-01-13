@@ -3,4 +3,3 @@
 # class AttendancePoll():
 #     def __init__(self, app: ) -> None:
 #         pass
-    

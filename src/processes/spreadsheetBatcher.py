@@ -27,12 +27,14 @@ class SpreadsheetBatcher(Process):
                 if user not in updateBatch:
 
                     # Check if user is in sheet
-                    user = self.attendancePollController.lookup_or_add_user(payload.user)
+                    user = self.attendancePollController.lookup_or_add_user(
+                        payload.user
+                    )
                     # If the user is not in the sheet, add_user will auto add them.
 
                     # Grab the starting column based off of the first date in AttendancePoll
                     # Note: AttendancePoll is sorted by date (earliest to latest)
-                    
+
                     starting_column = self.attendancePollController.get_forecast_entry(
                         user, attendancePoll.attendances[0].meetingTime.start
                     )

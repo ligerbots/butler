@@ -8,9 +8,12 @@ def sample_command_callback(command, ack: Ack, respond: Respond, logger: Logger)
         # You always have to acknowledge slack after a command
         # It's the law 😤!
         ack()
-        respond(f"Responding to the sample command! Your command was: {command['text']}")
+        respond(
+            f"Responding to the sample command! Your command was: {command['text']}"
+        )
     except Exception as e:
         logger.error(e)
+
 
 def liger_chant(command, ack: Ack, respond: Respond, logger: Logger):
     try:
@@ -19,8 +22,9 @@ def liger_chant(command, ack: Ack, respond: Respond, logger: Logger):
     except Exception as e:
         logger.error(e)
 
+
 def whoami(command, ack: Ack, respond: Respond, logger: Logger):
-    try: 
+    try:
         ack()
         respond("")
     except Exception as e:

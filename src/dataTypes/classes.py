@@ -50,6 +50,7 @@ class UserReturn(User):
         base = super().__repr__()
         return f"{base}: {self.row}"
 
+
 @dataclass
 class MeetingTime:
     start: datetime
@@ -78,6 +79,7 @@ class MeetingTime:
     def date(self) -> str:
         return self.start.strftime("%m/%d")
 
+
 @dataclass
 class MeetingSheetEntry(MeetingTime):
     row: int
@@ -85,7 +87,8 @@ class MeetingSheetEntry(MeetingTime):
 
     def __repr__(self) -> str:
         return f"{(self.row, self.column)}: {super().__repr__()}"
-    
+
+
 class Attendance:
     meetingTime: MeetingTime
     attendance: bool
@@ -127,7 +130,7 @@ class AttendancePoll:
 
     def __str__(self) -> str:
         return f"{self.user}: {self.attendances}"
-    
+
     def __repr__(self) -> str:
         return str(self)
 
@@ -187,7 +190,7 @@ class AttendancePoll:
 
         def generate_initial_options(self) -> Optional[Dict[str, List]]:
             initial_options = []
-            
+
             for attendance in self.attendances:
                 if attendance.attendance:
                     initial_options.append(
@@ -242,7 +245,7 @@ class AttendancePoll:
         }
         poll["elements"][0]["options"] = generate_options(self)
         initial_options = generate_initial_options(self)
-        
+
         # Do not add initial options if there are none. Slack gets mad if you do.
         if initial_options is not None:
             print("Adding initial options")

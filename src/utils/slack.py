@@ -15,13 +15,14 @@ from ..dataTypes.classes import User
 #     else:
 #         return False
 
+
 def admin_check(ack: Ack, client: WebClient, body: dict, logger: Logger) -> bool:
     """Check if user is admin"""
     user_id = body["user_id"]
 
     with open("config/slack_ids.json", "r") as f:
         slack_ids = json.load(f)
-    
+
     admins = client.usergroups_users_list(usergroup=slack_ids["ADMIN_LIST"])["users"]
 
     if user_id in admins:
