@@ -21,8 +21,8 @@ import time
 
 
 SEND_DAY = 5  # 0 = Monday, 6 = Sunday
-SEND_HOUR = 22
-SEND_MINUTE = 20
+SEND_HOUR = 14
+SEND_MINUTE = 0
 
 class Messenger(Process):
     def __init__(self, client: WebClient):
