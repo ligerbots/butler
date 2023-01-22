@@ -6,7 +6,7 @@ from .listeners import register_listeners
 # Tokens and secrets are all stored in environment variables
 app = App(
     token=os.environ.get("SLACK_BOT_TOKEN"),
-    signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
+    signing_secret=os.environ.get("SLACK_SIGNING_SECRET"),
 )
 
 # Attach listeners

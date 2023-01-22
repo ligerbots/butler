@@ -12,7 +12,7 @@ from ..dataTypes.classes import (
     UserReturn,
     User,
     ForecastJob,
-    MeetingSheetEntry
+    MeetingSheetEntry,
 )
 
 gc = pygsheets.authorize(service_file="config/secrets/g-service.json")
@@ -22,6 +22,7 @@ MEETINGS_TO_FORECAST_SHIFT = (-1, 2)
 MEETING_TIME_FORMAT = "%m,%d,%Y %H:%M"
 MEETING_TIME_FORMAT_SHORT = "%m,%d,%Y"
 
+
 class AttendanceSheetController:
     def __init__(self):
         self.gc = pygsheets.authorize(service_file="config/secrets/g-service.json")
@@ -30,6 +31,7 @@ class AttendanceSheetController:
         self.attendance_sheet = self.sh.worksheet_by_title("Attendance")
         self.forecast_sheet = self.sh.worksheet_by_title("Forecast")
         self.meetings_sheet = self.sh.worksheet_by_title("Meetings")
+        self.status_sheet = self.sh.worksheet_by_title("Status")
 
     # Methods to convert the format of the time in the Meetings sheet to a datetime object
     @staticmethod
@@ -64,12 +66,14 @@ class AttendanceSheetController:
                 return cell
         return None
 
-    def get_nearest_datetime(self, date: datetime = datetime.now()) -> Optional[datetime]:
+    def get_nearest_datetime(
+        self, date: datetime = datetime.now()
+    ) -> Optional[datetime]:
         nearest_date = self.get_nearest_date(date)
         if nearest_date is None:
             return None
         return self.meeting_cell_time_format(nearest_date)
-    
+
     def get_upcoming_meetings(
         self, window: int, date: datetime = datetime.now()
     ) -> List[MeetingSheetEntry]:
@@ -83,11 +87,15 @@ class AttendanceSheetController:
             returnas="cell",
         )
         if remaining_meetings is None or len(remaining_meetings) != 2:
-            raise ValueError("Spreadsheet not formatted correctly. Please check the Meetings sheet. There are no start or end rows")
-        
+            raise ValueError(
+                "Spreadsheet not formatted correctly. Please check the Meetings sheet. There are no start or end rows"
+            )
+
         if len(remaining_meetings[0]) != len(remaining_meetings[1]):
-            raise ValueError("Spreadsheet not formatted correctly. Start and End time rows do not match in length.")
-        
+            raise ValueError(
+                "Spreadsheet not formatted correctly. Start and End time rows do not match in length."
+            )
+
         start_times = remaining_meetings[0]
         end_times = remaining_meetings[1]
         meeting_times: List[MeetingSheetEntry] = []
@@ -95,12 +103,21 @@ class AttendanceSheetController:
         for x in range(len(start_times)):
             start_time = self.meeting_cell_time_format(start_times[x])
             end_time = self.meeting_cell_time_format(end_times[x])
-            meeting_times.append(MeetingSheetEntry(start = start_time, end = end_time, column = start_times[x].col, row = start_times[x].row))
+            meeting_times.append(
+                MeetingSheetEntry(
+                    start=start_time,
+                    end=end_time,
+                    column=start_times[x].col,
+                    row=start_times[x].row,
+                )
+            )
 
         return meeting_times
 
     # Wrapper of get_upcoming_meetings to get the next week of meetings
-    def get_upcoming_week_meetings(self, date: datetime = datetime.now()) -> List[MeetingSheetEntry]:
+    def get_upcoming_week_meetings(
+        self, date: datetime = datetime.now()
+    ) -> List[MeetingSheetEntry]:
         # Find the number of meeting entries until the next week
         current_date_cell = self.get_nearest_date(date)
         if current_date_cell is None:
@@ -109,7 +126,9 @@ class AttendanceSheetController:
         next_week_cell = self.get_nearest_date(next_week)
         if next_week_cell is None:
             return []
-        return self.get_upcoming_meetings(next_week_cell.col - current_date_cell.col, date)
+        return self.get_upcoming_meetings(
+            next_week_cell.col - current_date_cell.col, date
+        )
 
     def get_user(self, user: UserCreate) -> Optional[UserReturn]:
         search = self.users_sheet.find(user.email)
@@ -122,9 +141,7 @@ class AttendanceSheetController:
         # return self.users_sheet.find(user.email, in_column=1, matchEntireCell=True)
 
     def translate_date_column(self, date: datetime) -> Optional[int]:
-        cell = self.meetings_sheet.find(
-            date.strftime(MEETING_TIME_FORMAT)
-        )
+        cell = self.meetings_sheet.find(date.strftime(MEETING_TIME_FORMAT))
         if len(cell) == 0:
             return None
         return cell[0].col + MEETINGS_TO_FORECAST_SHIFT[1]
@@ -152,7 +169,7 @@ class AttendanceSheetController:
 
         if len(upcoming_meetings) == 0:
             return None
-        
+
         # Hard coded optimization so we can avoid another search API Call (which is O(n))
         # Assumes that the meetings are sorted!
         first_column = upcoming_meetings[0].column + MEETINGS_TO_FORECAST_SHIFT[1]
@@ -166,7 +183,7 @@ class AttendanceSheetController:
         )
         attendances = []
         for i in range(len(upcoming_meetings)):
-            
+
             meetingCellSheet = upcoming_meetings[i]
 
             # Map spreadsheet values to python booleans
@@ -195,11 +212,54 @@ class AttendanceSheetController:
         else:
             return searched_user
 
-    def get_forecast_success(self, date: datetime) -> bool:
-        LIGER_USER = UserReturn("forecast@ligerbots.org", 1, "Liger", "Forecast")
+    def get_row_of_date(self, date: datetime) -> int:
+        dates = self.status_sheet.get_col(1, include_tailing_empty=False)
 
-        cell = self.get_forecast_entry(user = LIGER_USER, date = date)
-        return True if cell.value == "TRUE" else False
+        row = None
+        for index, entry in enumerate(dates):
+            try:
+                if entry == datetime.strftime(date, MEETING_TIME_FORMAT_SHORT):
+                    row = index + 1
+                    break
+            except ValueError:
+                print("malformed column")
+
+        return row
+
+    def get_success(self, date: datetime) -> tuple:
+        dates = self.status_sheet.get_col(1, include_tailing_empty=False)
+        row = None
+
+        td = timedelta((12 - date.weekday()) % 7)
+        next_saturday = date + td
+
+        row = self.get_row_of_date(next_saturday)
+
+        if row is None:
+            new_index = len(dates) + 1
+            self.set_success(next_saturday, False, False, new_index)
+            return False, False
+
+        else:
+            forecast_status = (
+                False if self.status_sheet.get_value(f"B{row}") == "FALSE" else True
+            )
+            attendance_status = (
+                False if self.status_sheet.get_value(f"C{row}") == "FALSE" else True
+            )
+            return forecast_status, attendance_status
+
+    def set_success(
+        self, date: datetime, forecast_status: bool, attendance_status: bool, index=None
+    ) -> tuple:
+        if index is None:
+            index = self.get_row_of_date(date)
+        self.status_sheet.update_value(
+            f"A{index}", date.strftime(MEETING_TIME_FORMAT_SHORT)
+        )
+        self.status_sheet.update_value(f"B{index}", f"={forecast_status}")
+        self.status_sheet.update_value(f"C{index}", f"={attendance_status}")
+        return True
 
     ## Update the forecast sheet with the attendance poll
     ## THIS FUNCTION IS SOOOOOO SLOW. USE BATCH UPDATE FORECAST INSTEAD!!!
@@ -304,7 +364,6 @@ class AttendanceSheetController:
             except ValueError:
                 pass
             forecast_sheet_header_mapper[header] = i
-            
 
         for i, header in enumerate(user_sheet_header):
             user_sheet_header_mapper[header] = i
@@ -327,7 +386,7 @@ class AttendanceSheetController:
             except Exception as e:
                 print("FUCK ME", e)
                 startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT)
-                endTime=datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
+                endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
             # try:
             #     startTime = datetime.strptime(startTime_raw, MEETING_TIME_FORMAT)
             #     endTime = datetime.strptime(endTime_raw, MEETING_TIME_FORMAT)
@@ -392,9 +451,7 @@ class AttendanceSheetController:
                 if forecast_sheet_header[i] == "":
                     break
 
-                date = datetime.strptime(
-                    forecast_sheet_header[i], MEETING_TIME_FORMAT
-                )
+                date = datetime.strptime(forecast_sheet_header[i], MEETING_TIME_FORMAT)
                 # if date not in meeting_mapper:
                 #     date = datetime.strptime(
                 #         forecast_sheet_header[i], MEETING_TIME_FORMAT_SHORT_NO_LEADING_ZERO
@@ -402,7 +459,7 @@ class AttendanceSheetController:
                 if entry[i] == "":
                     print("ERROR IN VALUE")
                     break
-                
+
                 print("MEETING MAPPER IS")
                 print(meeting_mapper)
                 meetingTime = meeting_mapper[date]
@@ -415,9 +472,10 @@ class AttendanceSheetController:
         print("COMING OUT OF GET ALL FORECASTS")
         return forecasts
 
-
-    def get_forecasts_upcoming_week(self, date: datetime = datetime.now()) -> Optional[Dict[User, AttendancePoll]]:
-            # Find the number of meeting entries until the next week
+    def get_forecasts_upcoming_week(
+        self, date: datetime = datetime.now()
+    ) -> Optional[Dict[User, AttendancePoll]]:
+        # Find the number of meeting entries until the next week
         current_date_cell = self.get_nearest_date(date)
         if current_date_cell is None:
             return []

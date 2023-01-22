@@ -15,6 +15,7 @@ from ...dataTypes.classes import (
 )
 from ...process import spreadsheetUpdateQueue
 
+
 def attendance_poll_callback(ack: Ack, client: WebClient, body: dict, logger: Logger):
     try:
         # Acknowledge the action; this is required by slack (https://slack.dev/bolt-python/concepts#acknowledge)
