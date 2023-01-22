@@ -23,7 +23,7 @@ The listener workflow is based off of the [`bolt-python-starter-template`](https
 - Load in secret keys with `source config/secrets-load.sh`
 - Run `python src.app` to start the slack app
 - In another terminal, run `python src.processes.messenger` to start the messenger process. 
- 
+
 ## Features
 - [] Allow members to auto-do attendance
 - [] Allow members to put in their attendance for the upcoming week via emojis
