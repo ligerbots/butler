@@ -16,10 +16,8 @@ from ..dataTypes.classes import User
 #         return False
 
 
-def admin_check(ack: Ack, client: WebClient, body: dict, logger: Logger) -> bool:
+def admin_check(client: WebClient, user_id: str) -> bool:
     """Check if user is admin"""
-    user_id = body["user_id"]
-
     with open("config/slack_ids.json", "r") as f:
         slack_ids = json.load(f)
 

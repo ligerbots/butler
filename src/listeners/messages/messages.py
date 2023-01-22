@@ -11,6 +11,10 @@ from pprint import pprint
 
 from datetime import datetime
 
+from ...utils.slack import admin_check
+
+from ...processes.messenger import Messenger
+
 
 def sayBots(context: BoltContext, client: WebClient, say: Say, logger: Logger):
     try:
@@ -115,36 +119,47 @@ def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Lo
     last = slack_user["profile"]["last_name"]
 
     email = slack_user["profile"]["email"]
-    user = User(email, first, last)
-
-    spreadsheetController = AttendanceSheetController()
-    spreadsheet_user = spreadsheetController.get_user(user)
-    if spreadsheet_user is None:
-        say("Added you to the attendance sheet")
-        spreadsheet_user = spreadsheetController.lookup_or_add_user(user)
-
-    attendancePoll = spreadsheetController.get_attendance_poll(
-        spreadsheet_user, MEETING_WINDOW, datetime.now()
-    )
-    print("Attendance Poll:", attendancePoll)
-    if attendancePoll is None:
-        say("No more meetings to attend! :tada:")
+    
+    admin_status = admin_check(client, context["user_id"])
+    print("Admin status:", admin_status)
+    if not admin_status:
+        say("You are not an admin! You cannot use this command!")
         return
+    
+    messenger = Messenger(client)
+    messenger.sendPoll()
+    say("Sent weekly forecast poll!")
 
-    try:
-        json_poll = attendancePoll.generate_slack_poll()
-        blocks = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Hi!\n*Select the meetings you will attend:*",
-                },
-            },
-            json_poll,
-        ]
-        print("--------------------")
-        pprint(blocks)
-        say(blocks=blocks)
-    except Exception as e:
-        print(e)
+    # user = User(email, first, last)
+
+    # spreadsheetController = AttendanceSheetController()
+    # spreadsheet_user = spreadsheetController.get_user(user)
+    # if spreadsheet_user is None:
+    #     say("Added you to the attendance sheet")
+    #     spreadsheet_user = spreadsheetController.lookup_or_add_user(user)
+
+    # attendancePoll = spreadsheetController.get_attendance_poll(
+    #     spreadsheet_user, MEETING_WINDOW, datetime.now()
+    # )
+    # print("Attendance Poll:", attendancePoll)
+    # if attendancePoll is None:
+    #     say("No more meetings to attend! :tada:")
+    #     return
+
+    # try:
+    #     json_poll = attendancePoll.generate_slack_poll()
+    #     blocks = [
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": "Hi!\n*Select the meetings you will attend:*",
+    #             },
+    #         },
+    #         json_poll,
+    #     ]
+    #     print("--------------------")
+    #     pprint(blocks)
+    #     say(blocks=blocks)
+    # except Exception as e:
+    #     print(e)
