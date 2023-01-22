@@ -21,8 +21,8 @@ The listener workflow is based off of the [`bolt-python-starter-template`](https
 - Install requirements.txt
 - Start your python virtual env
 - Load in secret keys with `source config/secrets-load.sh`
-- Run `python src.app` to start the slack app
-- In another terminal, run `python src.processes.messenger` to start the messenger process. 
+- Run `python -m src.app` to start the slack app
+- In another terminal, run `python -m src.processes.messenger` to start the messenger process. 
 
 ## Features
 - [] Allow members to auto-do attendance
