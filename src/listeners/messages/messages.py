@@ -112,6 +112,52 @@ def attendancePollTest(
 
 
 def attendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Logger):
+    slack_user = client.users_profile_get(user=context["user_id"])
+    first = slack_user["profile"]["first_name"]
+    last = slack_user["profile"]["last_name"]
+
+    email = slack_user["profile"]["email"]
+    
+    admin_status = admin_check(client, context["user_id"])
+    if not admin_status:
+        say("You are not an admin! You cannot use this command!")
+        return
+    
+    user = User(email, first, last)
+
+    spreadsheetController = AttendanceSheetController()
+    spreadsheet_user = spreadsheetController.get_user(user)
+    if spreadsheet_user is None:
+        say("Added you to the attendance sheet")
+        spreadsheet_user = spreadsheetController.lookup_or_add_user(user)
+
+    attendancePoll = spreadsheetController.get_attendance_poll(
+        spreadsheet_user, 5, datetime.now()
+    )
+    print("Attendance Poll:", attendancePoll)
+    if attendancePoll is None:
+        say("No more meetings to attend! :tada:")
+        return
+
+    try:
+        json_poll = attendancePoll.generate_slack_poll()
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Hi!\n*Select the meetings you will attend:*",
+                },
+            },
+            json_poll,
+        ]
+        print("--------------------")
+        pprint(blocks)
+        say(blocks=blocks)
+    except Exception as e:
+        print(e)
+
+def sendAttendancePoll(context: BoltContext, client: WebClient, say: Say, logger: Logger):
     MEETING_WINDOW = 4  # Note: Number is inclusive (i.e. 4 means 5 meetings)
 
     slack_user = client.users_profile_get(user=context["user_id"])
